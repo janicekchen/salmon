@@ -1,0 +1,32 @@
+{
+    "id": "EDB556DD",
+    "path": null,
+    "project_path": null,
+    "type": "r_dataframe",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1599270931528.0,
+    "source_on_save": false,
+    "relative_order": 9,
+    "properties": {
+        "expression": "export_sum",
+        "caption": "export_sum",
+        "totalObservations": "559",
+        "displayedObservations": "559",
+        "variables": "9",
+        "cacheKey": "ECA65A06",
+        "object": "export_sum",
+        "environment": "",
+        "contentUrl": "grid_resource/gridviewer.html?env=&obj=export_sum&cache_key=ECA65A06&max_cols=50",
+        "preview": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 3906364982722577206,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1599270931528,
+    "read_only": false,
+    "read_only_alternatives": []
+}
