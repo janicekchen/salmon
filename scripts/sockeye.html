@@ -20,56 +20,89 @@
 		<script type = 'text/javascript'>
 			var world = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/f805b1583af0e0500e1a4884bb0dd40834019aa8/worldmap.json";
 
-			var netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/8ee3f73dfba2b5f2e3118e8d3e4386f27df8ea50/net_sockeye.csv";
-			
-			var windowHeight = window.innerHeight;
-			var windowWidth = window.innerWidth;
+						var netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/8ee3f73dfba2b5f2e3118e8d3e4386f27df8ea50/net_salmon.csv";
 
-			var svg = d3.select("body")
-			            .append("svg")
-			            .attr("height", windowHeight)
-			            .attr("width", windowWidth);
+						var states = "https://gist.githubusercontent.com/janicekchen/31b7130ba15ef2b1f255cf10827848cd/raw/297dcf1005e51204ab5caf300da6d7abade81022/us-states.json";
 
-			var projection = d3.geoOrthographic()
-			                   	.rotate([110, -40])
-			                   .translate([windowWidth / 2, windowHeight / 2	])
-			                   .scale(700);
+						var provinces = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/canada.geojson"
+						
+						var windowHeight = window.innerHeight;
+						var windowWidth = window.innerWidth;
 
-			var path = d3.geoPath().projection(projection);
+						var svg = d3.select("body")
+						            .append("svg")
+						            .attr("height", windowHeight)
+						            .attr("width", windowWidth);
 
-			var graticule = d3.geoGraticule();
-			var grats = svg.append("g");
-			var countries = svg.append("g")
-			var salmonF = svg.append("g");
+						var projection = d3.geoOrthographic()
+						                   	.rotate([110, -50])
+						                   .translate([windowWidth / 2, windowHeight / 2	])
+						                   .scale(800);
 
+						var path = d3.geoPath().projection(projection);
 
+						var graticule = d3.geoGraticule();
+						var globe = svg.append("g");
+						var grats = svg.append("g");
+						var countries = svg.append("g");
+						var states_grp = svg.append("g");
+						var provinces_grp = svg.append("g");
+						var salmonF = svg.append("g");
 
-			d3.json(world).then(function(data) {
+						// drawing globe outline
+						globe.append("path")
+							     .datum({type: "Sphere"})
+							     .attr("d", path)
+							     .attr("fill", "#c5dcde")
+							     .attr("stroke", "black");
 
-				
-				countries.selectAll("path")
-				   .data(data.features)
-				   .enter()
-				   .append("path")
-				   .attr("d", path)
-				   .style("fill", "none")
-				   .style("stroke", "black")
-				   .style("stroke-width", "0.5");
+						d3.json(world).then(function(data) {
 
-				
-				grats.selectAll("path")
-				     .data(graticule.lines())
-				     .enter()
-				     .append("path")
-				     .attr("d", path)
-				     .attr("class", "hi")
-				     .attr("stroke-width", ".5px")
-				     .attr("fill", "none")
-				     .attr("stroke", "black")
-				     .attr("stroke-opacity", ".1");
+							
+							countries.selectAll("path")
+							   .data(data.features)
+							   .enter()
+							   .append("path")
+							   .attr("d", path)
+							   .style("fill", "white")
+							   .style("stroke", "lightgrey")
+							   .style("stroke-width", "0.5");
 
-				
-			})
+							
+							grats.selectAll("path")
+							     .data(graticule.lines())
+							     .enter()
+							     .append("path")
+							     .attr("d", path)
+							     .attr("class", "hi")
+							     .attr("stroke-width", ".3px")
+							     .attr("fill", "none")
+							     .attr("stroke", "black")
+							     .attr("stroke-opacity", ".1");
+
+						});
+
+						d3.json(states).then(function(data) {
+							states_grp.selectAll("path")
+							      .data(data.features)
+							      .enter()
+							      .append("path")
+							      .attr("d", path)
+							      .style("fill", "white")
+							      .style("stroke", "#013f45")
+							      .attr("stroke-width", "0.1")
+						})
+
+						d3.json(provinces).then(function(data) {
+							provinces_grp.selectAll("path")
+							      .data(data.features)
+							      .enter()
+							      .append("path")
+							      .attr("d", path)
+							      .style("fill", "white")
+							      .style("stroke", "#013f45")
+							      .attr("stroke-width", "0.1")
+						})
 
 			function drawSalmon(year) {
 				d3.csv(netSalmon).then(function(data) {
