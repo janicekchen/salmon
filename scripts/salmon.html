@@ -30,10 +30,10 @@
 			            .attr("height", windowHeight)
 			            .attr("width", windowWidth);
 
-			var projection = d3.geoOrthographic()
-			                   .rotate([120, -50])
-			                   .translate([windowWidth / 2, windowHeight / 2])
-			                   .scale(900);
+			var projection = d3.geoConicEquidistant()
+			                   	.rotate([120, -50])
+			                   .translate([windowWidth / 2, windowHeight / 20])
+			                   .scale(700);
 
 			var path = d3.geoPath().projection(projection);
 
@@ -98,6 +98,8 @@
 
 						link.push(topush)
 					})
+
+					console.log(link)
 
 					var tooltip = d3.select("body")
 					    .append("div")

@@ -131,7 +131,7 @@ names(export_sum)[8:9] <- c("or_lon", "or_lat")
 #   addProviderTiles('CartoDB.Positron') %>%
 #   addPolylines(data = export2019, color = "blue", weight = export2020$value / 5000000) %>%
 #   addPolylines(data = import2019, color = "black", weight = import2020$value / 5000000) 
-  
+
 names(import_sum)[c(2, 4:5)] <- c("us_state", "imp_quant", "imp_value")
 names(export_sum)[c(2, 4:5)] <- c("us_state", "exp_quant", "exp_value")
 
