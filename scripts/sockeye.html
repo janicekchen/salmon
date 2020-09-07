@@ -31,7 +31,7 @@
 			            .attr("width", windowWidth);
 
 			var projection = d3.geoOrthographic()
-			                   	.rotate([115, -45])
+			                   	.rotate([110, -40])
 			                   .translate([windowWidth / 2, windowHeight / 2	])
 			                   .scale(700);
 
@@ -67,6 +67,8 @@
 				     .attr("fill", "none")
 				     .attr("stroke", "black")
 				     .attr("stroke-opacity", ".1");
+
+				
 			})
 
 			function drawSalmon(year) {
