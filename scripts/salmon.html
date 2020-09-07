@@ -20,7 +20,7 @@
 		<script type = 'text/javascript'>
 			var world = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/f805b1583af0e0500e1a4884bb0dd40834019aa8/worldmap.json";
 
-			var netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/18fdc2e6a7b2aecd9d89c8be55d72438115adc25/net_salmon.csv";
+			var netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/8ee3f73dfba2b5f2e3118e8d3e4386f27df8ea50/net_salmon.csv";
 			
 			var windowHeight = window.innerHeight;
 			var windowWidth = window.innerWidth;
@@ -30,9 +30,9 @@
 			            .attr("height", windowHeight)
 			            .attr("width", windowWidth);
 
-			var projection = d3.geoConicEquidistant()
-			                   	.rotate([120, -50])
-			                   .translate([windowWidth / 2, windowHeight / 20])
+			var projection = d3.geoOrthographic()
+			                   	.rotate([115, -45])
+			                   .translate([windowWidth / 2, windowHeight / 2	])
 			                   .scale(700);
 
 			var path = d3.geoPath().projection(projection);
@@ -130,12 +130,14 @@
 					     .transition()
 					     .duration(200)
 					     .style("opacity", 0)
-					 }
+					 };
 
-					salmonF.selectAll("path")
-					      .data(link)
-					      .enter()
-					      .append("path")
+					var flows = salmonF.selectAll("path")
+					                   .data(link);
+
+					flows.enter()
+					     .append("path")
+					     .merge(flows)
 					      .attr("d", function(d) {
 					      	return (path(d.geometry))
 					      })
@@ -147,7 +149,7 @@
 					      })
 					      .style("stroke-width", function(d) {
 					      	var net = d.properties.exp_quant - d.properties.imp_quant;
-					      	return Math.abs(net) / 1000000;
+					      	return Math.abs(net) / 500000;
 					      })
 					      .on("mouseover", mouseover)
 					      .on("mousemove", mousemove )
@@ -158,7 +160,7 @@
 				
 			}
 				
-			drawSalmon(2019)
+			drawSalmon(2020)
 
 			var slider = d3.sliderHorizontal()
 			               .min(1990)
