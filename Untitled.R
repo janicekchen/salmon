@@ -85,52 +85,60 @@ export_sum %<>% left_join(ports_filt[c(1, 5:6)], by = c("clearance_port" = "port
 names(export_sum)[8:9] <- c("or_lon", "or_lat")
 
 # mapping
-flow <- function(x) {
-  gcIntermediate(as.data.frame(x)[complete.cases(x), 6:7], as.data.frame(x)[complete.cases(x), 8:9],
-                 sp = TRUE, addStartEnd = TRUE)}
-
-df_list <- list(import_sum, export_sum)
-flow_list <- lapply(df_list, function(x) {
-  flow(x)
-  # for(i in 1999:2020) {
-  #   t <- x %>%
-  #     filter(year == i)
-  #   flows <- flow(t)
-  #   assign(paste0(x, i), flows, envir = .GlobalEnv)
-  # }
-})
-
-
-for(j in 2000:2020) {
-  t <- export_sum[complete.cases(export_sum), ] %>%
-    filter(year == j) 
-  flows <- flow(t) %>%
-    st_as_sf() %>%
-    cbind(t) %>%
-    st_as_sf() %>%
-    st_transform(4326)
-
-  assign(paste0("export", j), flows, envir = .GlobalEnv)
-}
-
-for(j in 2000:2020) {
-  t <- import_sum[complete.cases(import_sum), ] %>%
-    filter(year == j) 
-  flows <- flow(t) %>%
-    st_as_sf() %>%
-    cbind(t) %>%
-    st_as_sf() %>%
-    st_transform(4326)
+# flow <- function(x) {
+#   gcIntermediate(as.data.frame(x)[complete.cases(x), 6:7], as.data.frame(x)[complete.cases(x), 8:9],
+#                  sp = TRUE, addStartEnd = TRUE)}
+# 
+# df_list <- list(import_sum, export_sum)
+# flow_list <- lapply(df_list, function(x) {
+#   flow(x)
+#   # for(i in 1999:2020) {
+#   #   t <- x %>%
+#   #     filter(year == i)
+#   #   flows <- flow(t)
+#   #   assign(paste0(x, i), flows, envir = .GlobalEnv)
+#   # }
+# })
+# 
+# 
+# for(j in 2000:2020) {
+#   t <- export_sum[complete.cases(export_sum), ] %>%
+#     filter(year == j) 
+#   flows <- flow(t) %>%
+#     st_as_sf() %>%
+#     cbind(t) %>%
+#     st_as_sf() %>%
+#     st_transform(4326)
+# 
+#   assign(paste0("export", j), flows, envir = .GlobalEnv)
+# }
+# 
+# for(j in 2000:2020) {
+#   t <- import_sum[complete.cases(import_sum), ] %>%
+#     filter(year == j) 
+#   flows <- flow(t) %>%
+#     st_as_sf() %>%
+#     cbind(t) %>%
+#     st_as_sf() %>%
+#     st_transform(4326)
+#   
+#   assign(paste0("import", j), flows, envir = .GlobalEnv)
+# }
+# 
+# 
+# 
+# leaflet() %>%
+#   addProviderTiles('CartoDB.Positron') %>%
+#   addPolylines(data = export2019, color = "blue", weight = export2020$value / 5000000) %>%
+#   addPolylines(data = import2019, color = "black", weight = import2020$value / 5000000) 
   
-  assign(paste0("import", j), flows, envir = .GlobalEnv)
-}
+names(import_sum)[c(2, 4:5)] <- c("us_state", "imp_quant", "imp_value")
+names(export_sum)[c(2, 4:5)] <- c("us_state", "exp_quant", "exp_value")
 
-leaflet() %>%
-  addProviderTiles('CartoDB.Positron') %>%
-  # addPolylines(data = temp, color = "black", weight = temp$value / 5000000) %>%
-  addPolylines(data = export2020, color = "blue", weight = temp2$value / 500000) %>%
-  addPolylines(data = import2020, color = "black", weight = temp2$value / 500000) 
-  
+net <- full_join(import_sum[1:5], export_sum[1:5], 
+                 by = c("year", "us_state", "clearance_port")) %>%
+  left_join(us_states, by = c("us_state" = "NAME")) %>%
+  left_join(ports_filt[c(1, 4:6)], by = c("clearance_port" = "port_code"))
 
-export2020_sf <- st_as_sf(export2020)
-export2020_sf <- st_transform(export2020_sf, 4326)
+names(net)[c(8:9, 11:12)] <- c("state_lon", "state_lat", "port_lon", "port_lat")
+write.csv(net, "data/processed/net_salmon.csv")

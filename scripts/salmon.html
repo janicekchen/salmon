@@ -2,7 +2,182 @@
 <html>
 	<head>
 		<script src ='https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js'></script>
+		<script src="https://unpkg.com/d3-simple-slider"></script>
+		<style>
+			body {
+				margin: 0;
+			}
+
+			.tooltip {
+				font-family: sans-serif;
+				font-weight: 100;
+				font-size: 12;
+			}
+		</style>
 	</head>
 	<body>
+		<div id = "slider" style = "position: fixed"></div>
+		<script type = 'text/javascript'>
+			var world = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/f805b1583af0e0500e1a4884bb0dd40834019aa8/worldmap.json";
+
+			var netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/18fdc2e6a7b2aecd9d89c8be55d72438115adc25/net_salmon.csv";
+			
+			var windowHeight = window.innerHeight;
+			var windowWidth = window.innerWidth;
+
+			var svg = d3.select("body")
+			            .append("svg")
+			            .attr("height", windowHeight)
+			            .attr("width", windowWidth);
+
+			var projection = d3.geoOrthographic()
+			                   .rotate([120, -50])
+			                   .translate([windowWidth / 2, windowHeight / 2])
+			                   .scale(900);
+
+			var path = d3.geoPath().projection(projection);
+
+			var graticule = d3.geoGraticule();
+			var grats = svg.append("g");
+			var countries = svg.append("g")
+			var salmonF = svg.append("g");
+
+
+
+			d3.json(world).then(function(data) {
+
+				
+				countries.selectAll("path")
+				   .data(data.features)
+				   .enter()
+				   .append("path")
+				   .attr("d", path)
+				   .style("fill", "none")
+				   .style("stroke", "black")
+				   .style("stroke-width", "0.5");
+
+				
+				grats.selectAll("path")
+				     .data(graticule.lines())
+				     .enter()
+				     .append("path")
+				     .attr("d", path)
+				     .attr("class", "hi")
+				     .attr("stroke-width", ".5px")
+				     .attr("fill", "none")
+				     .attr("stroke", "black")
+				     .attr("stroke-opacity", ".1");
+			})
+
+			function drawSalmon(year) {
+				d3.csv(netSalmon).then(function(data) {
+
+					var filtData = data.filter(function(d) {
+						return d.year == year;
+					})
+
+					var link = []
+					filtData.forEach(function(row) {
+						source = [+row.state_lon, +row.state_lat]
+						target = [+row.port_lon, +row.port_lat]
+						topush = {type: "Feature",
+								  geometry: {
+								  	type: "LineString", 
+								  	coordinates: [source, target]
+								  },
+								  "properties": {
+								  	"exp_quant": row.exp_quant,
+								  	"imp_quant": row.imp_quant,
+								  	"exp_value": row.exp_value,
+								  	"imp_value": row.imp_value,
+								  	"state": row.us_state,
+								  	"port": row.port_eng,
+								  	"port_code": row.port_code
+								  }
+								}
+
+						link.push(topush)
+					})
+
+					var tooltip = d3.select("body")
+					    .append("div")
+					    .style("position", "absolute")
+					    .style("opacity", 0)
+					    .attr("class", "tooltip")
+					    .style("background-color", "white")
+					    .style("border", "solid")
+					    .style("border-width", "1px")
+					    .style("border-radius", "2px")
+					    .style("padding", "10px")
+
+					var mouseover = function(d) {
+					    tooltip
+					      .style("opacity", 1)
+					  }
+
+					var mousemove = function(d) {
+					   tooltip
+					     .html("<strong>" + d.properties.port + " -- " + d.properties.state + "<br>Export quantity | value: </strong>" + d3.format(",.0f")(d.properties.exp_quant) + " | " + d3.format("$,.0f")(d.properties.exp_value) + "<strong><br> Import quantity | value:</strong> " + d3.format(",.0f")(d.properties.imp_quant) + " | " + d3.format("$,.0f")(d.properties.imp_value))
+					     .style("left", (d3.mouse(this)[0]+90) + "px") // It is important to put the +90: other wise the tooltip is exactly where the point is an it creates a weird effect
+					     .style("top", (d3.mouse(this)[1]) + "px")
+					 }
+
+					 // A function that change this tooltip when the leaves a point: just need to set opacity to 0 again
+					 var mouseleave = function(d) {
+					   tooltip
+					     .transition()
+					     .duration(200)
+					     .style("opacity", 0)
+					 }
+
+					salmonF.selectAll("path")
+					      .data(link)
+					      .enter()
+					      .append("path")
+					      .attr("d", function(d) {
+					      	return (path(d.geometry))
+					      })
+					      .style("fill", "none")
+					      .style("stroke", function(d) {
+					      	var net = d.properties.exp_quant - d.properties.imp_quant;
+					      	if (net > 0) { return "#26694d"}
+					      	else { return "#9e2613"}
+					      })
+					      .style("stroke-width", function(d) {
+					      	var net = d.properties.exp_quant - d.properties.imp_quant;
+					      	return Math.abs(net) / 1000000;
+					      })
+					      .on("mouseover", mouseover)
+					      .on("mousemove", mousemove )
+					      .on("mouseleave", mouseleave )
+
+
+				})
+				
+			}
+				
+			drawSalmon(2019)
+
+			var slider = d3.sliderHorizontal()
+			               .min(1990)
+			               .max(2020)
+			               .step(1)
+			               .width(windowWidth - 100)
+			               .default(2020)
+			               .tickFormat(d3.format(".0f"))
+			               .displayValue(true)
+			               .on("onchange", val => {drawSalmon(val)})
+
+			d3.select("#slider")
+			  .append('svg')
+			  .attr('width', windowWidth)
+			  .attr('height', 300)
+			  .append('g')
+			  .attr('transform', 'translate(30,30)')
+			  .call(slider);
+			
+
+
+		</script>
 	</body>
 </html
