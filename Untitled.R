@@ -7,6 +7,7 @@ library(tigris)
 library(sf)
 library(geosphere)
 library(leaflet)
+library(rnaturalearth)
 
 # read in data
 import <- read.csv("data/processed/salmon_imports.csv") %>%
@@ -83,7 +84,100 @@ names(import_sum)[8:9] <- c("dest_lon", "dest_lat")
 
 export_sum %<>% left_join(ports_filt[c(1, 5:6)], by = c("clearance_port" = "port_code"))
 names(export_sum)[8:9] <- c("or_lon", "or_lat")
+  
+names(import_sum)[c(2, 4:5)] <- c("us_state", "imp_quant", "imp_value")
+names(export_sum)[c(2, 4:5)] <- c("us_state", "exp_quant", "exp_value")
 
+net <- full_join(import_sum[1:5], export_sum[1:5], 
+                 by = c("year", "us_state", "clearance_port")) %>%
+  left_join(us_states, by = c("us_state" = "NAME")) %>%
+  left_join(ports_filt[c(1, 4:6)], by = c("clearance_port" = "port_code"))
+
+names(net)[c(8:9, 11:12)] <- c("state_lon", "state_lat", "port_lon", "port_lat")
+net %<>% mutate_at(c(1:7), ~replace(., is.na(.), 0))
+write.csv(net, "data/processed/net_salmon.csv")
+
+
+# doing world things now
+export_world <- export %>%
+  filter(country_dest != "United States")
+
+import_world <- import %>%
+  filter(country_origin != "United States")
+
+export_worldsum <- export_world %>%
+  group_by(year, country_dest, clearance_port) %>%
+  summarize(quant = sum(quant), value = sum(value))
+
+names(export_worldsum)[c(2, 4:5)] <- c("country", "exp_quant", "exp_value") # changing column name to make net data frame later
+
+import_worldsum <- import_world %>%
+  group_by(year, country_origin, clearance_port) %>%
+  summarize(quant = sum(quant), value = sum(value))
+
+names(import_worldsum)[c(2, 4:5)] <- c("country", "imp_quant", "imp_value")
+
+
+# retrieving country boundaries & creating data frame of country centroids
+countries <- ne_countries(returnclass = "sf")
+countries_cent <- st_coordinates(st_centroid(countries))  %>% 
+  cbind(countries["name_long"]) %>%
+  st_set_geometry(NULL)
+
+# filtering ports and geocoding manually
+unique_portsworld <- unique(c(import_worldsum$clearance_port, export_worldsum$clearance_port))
+# ports %<>% filter(port_code %in% unique_portsworld)
+# write.csv(ports, "data/processed/ports_filteredworld.csv") # write out to geocode manually
+ports_filtworld <- read.csv("data/processed/ports_filteredworld.csv")
+
+
+# creating net trade data frame
+net_world <- full_join(import_worldsum, export_worldsum, by = c("year", "country", "clearance_port")) %>%
+  left_join(countries_cent, by = c("country" = "name_long")) %>%
+  left_join(ports_filtworld[c(1, 4:6)], by = c("clearance_port" = "port_code"))
+
+# some countries have not been matched with coordinates. finding NA rows.
+nwNA <- net_world %>%
+  filter(is.na(X))
+uniqueNA <- unique(nwNA$country)
+
+net_world <- full_join(import_worldsum, export_worldsum, by = c("year", "country", "clearance_port"))
+
+net_world$country <- gsub("Viet Nam", "Vietnam", net_world$country)
+countries_cent$name_long <- gsub("Republic of Korea", "South Korea", countries_cent$name_long)
+net_world$country <- gsub("Korea, South", "South Korea", net_world$country)
+net_world$country <- gsub("Congo, Republic of the", "Republic of Congo", net_world$country)
+net_world$country <- gsub("Macedonia, North", "North Macedonia", net_world$country)
+countries_cent$name_long <- gsub("Macedonia", "North Macedonia", countries_cent$name_long)
+countries_cent$name_long <- gsub("Lao PDR", "Laos", countries_cent$name_long)
+net_world$country <- gsub("Moldova, Republic of", "Moldova", net_world$country)
+countries_cent$name_long <- gsub("Swaziland", "Eswatini", countries_cent$name_long)
+net_world$country <- gsub("Moldova, Republic of", "Moldova", net_world$country)
+net_world$country <- gsub("South Africa, Republic of", "South Africa", net_world$country)
+
+# run data frame join again
+net_world %<>%
+  left_join(countries_cent, by = c("country" = "name_long")) %>%
+  left_join(ports_filtworld[c(1, 4:6)], by = c("clearance_port" = "port_code"))
+
+nwNA <- net_world %>%
+  filter(is.na(X))
+uniqueNA <- unique(nwNA$country)
+
+net_world[net_world$country == "Faroe Islands", 8] <- -6.9118
+net_world[net_world$country == "Faroe Islands", 9] <- 61.8926
+net_world[net_world$country == "Hong Kong", 8] <- 114.1694
+net_world[net_world$country == "Hong Kong", 9] <- 22.3193
+net_world[net_world$country == "Singapore", 8] <- 103.8198
+net_world[net_world$country == "Singapore", 9] <- 1.3521
+net_world[net_world$country == "Netherlands Antilles", 8] <- -69.060087
+net_world[net_world$country == "Netherlands Antilles", 9] <- 12.226079
+net_world[net_world$country == "Bermuda", 8] <- -64.7505
+net_world[net_world$country == "Bermuda", 9] <- 32.3078
+net_world[net_world$country == "Macao", 8] <- 113.5439
+net_world[net_world$country == "Macao", 9] <- 22.1987
+net_world[net_world$country == "Cabo Verde", 8] <- -23.0418
+net_world[net_world$country == "Cabo Verde", 9] <- 16.5388
 # mapping
 # flow <- function(x) {
 #   gcIntermediate(as.data.frame(x)[complete.cases(x), 6:7], as.data.frame(x)[complete.cases(x), 8:9],
@@ -131,15 +225,3 @@ names(export_sum)[8:9] <- c("or_lon", "or_lat")
 #   addProviderTiles('CartoDB.Positron') %>%
 #   addPolylines(data = export2019, color = "blue", weight = export2020$value / 5000000) %>%
 #   addPolylines(data = import2019, color = "black", weight = import2020$value / 5000000) 
-  
-names(import_sum)[c(2, 4:5)] <- c("us_state", "imp_quant", "imp_value")
-names(export_sum)[c(2, 4:5)] <- c("us_state", "exp_quant", "exp_value")
-
-net <- full_join(import_sum[1:5], export_sum[1:5], 
-                 by = c("year", "us_state", "clearance_port")) %>%
-  left_join(us_states, by = c("us_state" = "NAME")) %>%
-  left_join(ports_filt[c(1, 4:6)], by = c("clearance_port" = "port_code"))
-
-names(net)[c(8:9, 11:12)] <- c("state_lon", "state_lat", "port_lon", "port_lat")
-net %<>% mutate_at(c(1:7), ~replace(., is.na(.), 0))
-write.csv(net, "data/processed/net_salmon.csv")

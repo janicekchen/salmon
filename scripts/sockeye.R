@@ -34,12 +34,16 @@ df_list2 <- lapply(df_list, function(x) {
 export <- df_list2[[1]]
 import <- df_list2[[2]]
 
+unique(export$hs8_desc)
+
 # start with all U.S. ports, geocode, and then geocode the other places, and then rbind
 export_us <- export %>%
-  filter(country_dest == "United States")
+  filter(country_dest == "United States") %>%
+  filter(grepl("sockeye", hs8_desc))
 
 import_us <- import %>%
-  filter(country_origin == "United States")
+  filter(country_origin == "United States") %>%
+  filter(grepl("sockeye", hs10_desc))
 
 # summarize by year, departure and arrival
 export_sum <- export_us %>%
@@ -142,4 +146,4 @@ net <- full_join(import_sum[1:5], export_sum[1:5],
 
 names(net)[c(8:9, 11:12)] <- c("state_lon", "state_lat", "port_lon", "port_lat")
 net %<>% mutate_at(c(1:7), ~replace(., is.na(.), 0))
-write.csv(net, "data/processed/net_salmon.csv")
+write.csv(net, "data/processed/net_sockeye.csv")
