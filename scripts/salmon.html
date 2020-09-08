@@ -4,8 +4,10 @@
 		<script src ='https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js'></script>
 		<script src="https://unpkg.com/d3-simple-slider"></script>
 		<style>
+		
 			body {
 				margin: 0;
+				
 			}
 
 			.tooltip {
@@ -13,15 +15,17 @@
 				font-weight: 100;
 				font-size: 12;
 			}
+
+	
 		</style>
 	</head>
 	<body>
-		<div id = "slider" style = "position: fixed"></div>
-		<div id = "map"></div>
+		<div id = "slider" style = "position: absolute; border: 2px solid; height: 0px; width: 100%"></div>
+		<div id = "map" style = "border: 2px red solid;"></div>
 		<script type = 'text/javascript'>
 			const world = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/f805b1583af0e0500e1a4884bb0dd40834019aa8/worldmap.json";
 
-			const netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/8ee3f73dfba2b5f2e3118e8d3e4386f27df8ea50/net_salmon.csv";
+			const netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/71f5bf1b53b4f3b61dc7768df0d7a8b565dd20ad/net_all.csv";
 
 			const states = "https://gist.githubusercontent.com/janicekchen/31b7130ba15ef2b1f255cf10827848cd/raw/297dcf1005e51204ab5caf300da6d7abade81022/us-states.json";
 
@@ -30,7 +34,7 @@
 			const windowHeight = window.innerHeight;
 			const windowWidth = window.innerWidth;
 
-			var svg = d3.select("body")
+			var svg = d3.select("#map")
 			            .append("svg")
 			            .attr("height", windowHeight)
 			            .attr("width", windowWidth);
@@ -133,7 +137,7 @@
 								  	"imp_quant": row.imp_quant,
 								  	"exp_value": row.exp_value,
 								  	"imp_value": row.imp_value,
-								  	"state": row.us_state,
+								  	"state": row.state,
 								  	"port": row.port_eng,
 								  	"port_code": row.port_code
 								  }
@@ -220,6 +224,10 @@
 			  .append('g')
 			  .attr('transform', 'translate(30,30)')
 			  .call(slider);
+
+			d3.select("#slider")
+			  .select(".axis")
+			  .classed("noselect", "true")
 			
 
 			// drag & zoom
