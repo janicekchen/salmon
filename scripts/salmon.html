@@ -20,8 +20,8 @@
 		</style>
 	</head>
 	<body>
-		<div id = "slider" style = "position: absolute; border: 2px solid; height: 0px; width: 100%"></div>
-		<div id = "map" style = "border: 2px red solid;"></div>
+		<div id = "slider" style = "position: absolute; height: 0px; width: 100%;"></div>
+		<div id = "map"></div>
 		<script type = 'text/javascript'>
 			const world = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/f805b1583af0e0500e1a4884bb0dd40834019aa8/worldmap.json";
 
@@ -217,18 +217,18 @@
 			               .displayValue(true)
 			               .on("onchange", val => {drawSalmon(val)})
 
-			d3.select("#slider")
+			var sliderSVG = d3.select("#slider")
 			  .append('svg')
-			  .attr('width', windowWidth)
-			  .attr('height', 300)
+
+			  sliderSVG.attr('width', windowWidth)
+			  .attr('height', 70)
+			  .style("background-color", "rgba(255, 255, 255, 0.8")
 			  .append('g')
-			  .attr('transform', 'translate(30,30)')
+			  .attr('transform', 'translate(50,20)')
 			  .call(slider);
 
-			d3.select("#slider")
-			  .select(".axis")
-			  .classed("noselect", "true")
-			
+
+
 
 			// drag & zoom
 			const initialScale = projection.scale()
@@ -241,6 +241,7 @@
 					rotate[1] - d3.event.dy * k])
 				path = d3.geoPath().projection(projection)
 				svg.selectAll("path").attr("d", path)
+
 			})
 
 			const zoom = d3.zoom().on('zoom', () => {
