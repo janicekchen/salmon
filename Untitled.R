@@ -178,6 +178,15 @@ net_world[net_world$country == "Macao", 8] <- 113.5439
 net_world[net_world$country == "Macao", 9] <- 22.1987
 net_world[net_world$country == "Cabo Verde", 8] <- -23.0418
 net_world[net_world$country == "Cabo Verde", 9] <- 16.5388
+
+net_world %<>% mutate_at(c(1:7), ~replace(., is.na(.), 0))
+names(net_world)[c(2, 8:9, 11:12)] <- c("state","state_lon", "state_lat", "port_lat", "port_lon")
+names(net)[2] <- "state"
+
+net_all <- rbind(net, net_world)
+
+write.csv(net_world, "data/processed/net_world.csv")
+write.csv(net_all, "data/processed/net_all.csv")
 # mapping
 # flow <- function(x) {
 #   gcIntermediate(as.data.frame(x)[complete.cases(x), 6:7], as.data.frame(x)[complete.cases(x), 8:9],
