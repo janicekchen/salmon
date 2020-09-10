@@ -1,8 +1,10 @@
 <! DOCTYPE html>
 <html>
 	<head>
-		<script src ='https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js'></script>
-		<script src="https://unpkg.com/d3-simple-slider"></script>
+		<script src ='https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.min.js'></script>
+		<script src = "https://unpkg.com/d3-simple-slider@1.8.0/dist/d3-simple-slider.min.js"></script>
+		<script src="https://unpkg.com/versor"></script>
+		<script src="https://unpkg.com/topojson-client@2"></script>
 		<style>
 		
 			body {
@@ -21,243 +23,164 @@
 	</head>
 	<body>
 		<div id = "slider" style = "position: absolute; height: 0px; width: 100%;"></div>
-		<div id = "map"></div>
+		<canvas width="960" height="600"></cavnas>
 		<script type = 'text/javascript'>
-			const world = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/f805b1583af0e0500e1a4884bb0dd40834019aa8/worldmap.json";
 
-			const netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/71f5bf1b53b4f3b61dc7768df0d7a8b565dd20ad/net_all.csv";
+			var width = window.innerWidth;
+			var height = window.innerHeight;
 
-			const states = "https://gist.githubusercontent.com/janicekchen/31b7130ba15ef2b1f255cf10827848cd/raw/297dcf1005e51204ab5caf300da6d7abade81022/us-states.json";
+				var canvas = d3.select("canvas")
+			    canvas.property("width", width)
+			    canvas.property("height", height)
+			const context = canvas.node().getContext("2d");
+			var projection = d3.geoOrthographic().precision(0.1);
+			const path = d3.geoPath(projection, context);
 
-			const provinces = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/canada.geojson"
+			function render(land) {
+			    context.clearRect(0, 0, width, height);
+			    context.beginPath(), path(sphere), context.fillStyle = "#fff", context.fill();
+			    context.beginPath(), path(land), context.fillStyle = "#000", context.fill();
+			    context.beginPath(), path(sphere), context.stroke();
+			  }
+
+			 d3.select(context.canvas)
+			    .call(zoom(projection)
+			        .on("zoom.render", () => render(land110))
+			        .on("end.render", () => render(land50)))
+			    .call(() => render(land50))
+			    .node();
+
+			/*var canvas = d3.select("canvas")
+		    canvas.property("width", windowWidth)
+		    canvas.property("height", windowHeight)
+		    var context = canvas.node().getContext("2d");*/
+
+			/*var projection = d3.geoOrthographic()
+			    .scale((windowHeight - 10) / 2)
+			    .translate([windowWidth / 2, windowHeight / 2])*/
+
 			
-			const windowHeight = window.innerHeight;
-			const windowWidth = window.innerWidth;
 
-			var svg = d3.select("#map")
-			            .append("svg")
-			            .attr("height", windowHeight)
-			            .attr("width", windowWidth);
+			/*var path = d3.geoPath()
+			    .projection(projection)
+			    .context(context);
 
-			var projection = d3.geoOrthographic()
-			                   	.rotate([110, -50])
-			                   .translate([windowWidth / 2, windowHeight / 2	])
-			                   .scale(800);
+			canvas.call(d3.zoom()
+			    .on("start", zoomstarted)
+			    .on('zoom', zoomed));
 
-			var path = d3.geoPath().projection(projection);
+			var render = function() {},
+			    v0, // Mouse position in Cartesian coordinates at start of drag gesture.
+			    r0, // Projection rotation as Euler angles at start.
+			    q0; // Projection rotation as versor at start.
 
-			var graticule = d3.geoGraticule();
-			var globe = svg.append("g");
-			var grats = svg.append("g");
-			var countries = svg.append("g");
-			var states_grp = svg.append("g");
-			var provinces_grp = svg.append("g");
-			var countries = svg.append("g");
-			var salmonF = svg.append("g");
-
-			// drawing globe outline
-			globe.append("path")
-				     .datum({type: "Sphere"})
-				     .attr("d", path)
-				     .attr("fill", "#c5dcde")
-				     .attr("stroke", "black");
-
-			d3.json(world).then(function(data) {
-		
-				countries.selectAll("path")
-				   .data(data.features)
-				   .enter()
-				   .append("path")
-				   .attr("d", path)
-				   .style("fill", function(d) {
-				   	if (d.properties.name == "United States" || d.properties.name == "Canada") {
-				   		return "none"
-				   	}
-				   	else {
-				   		return "white"
-				   	}
-				   })
-				   .style("stroke", "#013f45")
-				   .style("stroke-width", "0.5");
-
-				
-				grats.selectAll("path")
-				     .data(graticule.lines())
-				     .enter()
-				     .append("path")
-				     .attr("d", path)
-				     .attr("class", "hi")
-				     .attr("stroke-width", ".3px")
-				     .attr("fill", "none")
-				     .attr("stroke", "black")
-				     .attr("stroke-opacity", ".1");
-
-			});
-
-			d3.json(states).then(function(data) {
-				states_grp.selectAll("path")
-				      .data(data.features)
-				      .enter()
-				      .append("path")
-				      .attr("d", path)
-				      .style("fill", "white")
-				      .style("stroke", "#013f45")
-				      .attr("stroke-width", "0.1")
-			})
-
-			d3.json(provinces).then(function(data) {
-				provinces_grp.selectAll("path")
-				      .data(data.features)
-				      .enter()
-				      .append("path")
-				      .attr("d", path)
-				      .style("fill", "white")
-				      .style("stroke", "#013f45")
-				      .attr("stroke-width", "0.1")
-			})
-
-			function drawSalmon(year) {
-				d3.csv(netSalmon).then(function(data) {
-
-					var filtData = data.filter(function(d) {
-						return d.year == year;
-					})
-
-					var link = []
-					filtData.forEach(function(row) {
-						source = [+row.state_lon, +row.state_lat]
-						target = [+row.port_lon, +row.port_lat]
-						topush = {type: "Feature",
-								  geometry: {
-								  	type: "LineString", 
-								  	coordinates: [source, target]
-								  },
-								  "properties": {
-								  	"exp_quant": row.exp_quant,
-								  	"imp_quant": row.imp_quant,
-								  	"exp_value": row.exp_value,
-								  	"imp_value": row.imp_value,
-								  	"state": row.state,
-								  	"port": row.port_eng,
-								  	"port_code": row.port_code
-								  }
-								}
-
-						link.push(topush)
-					})
-
-					var tooltip = d3.select("body")
-					    .append("div")
-					    .style("position", "absolute")
-					    .style("opacity", 0)
-					    .attr("class", "tooltip")
-					    .style("background-color", "white")
-					    .style("border", "solid")
-					    .style("border-width", "1px")
-					    .style("border-radius", "2px")
-					    .style("padding", "10px")
-
-					var mouseover = function(d) {
-					    tooltip
-					      .style("opacity", 1)
-					  }
-
-					var mousemove = function(d) {
-					   tooltip
-					     .html("<strong>" + d.properties.port + " -- " + d.properties.state + "<br>Export quantity | value: </strong>" + d3.format(",.0f")(d.properties.exp_quant) + " | " + d3.format("$,.0f")(d.properties.exp_value) + "<strong><br> Import quantity | value:</strong> " + d3.format(",.0f")(d.properties.imp_quant) + " | " + d3.format("$,.0f")(d.properties.imp_value))
-					     .style("left", (d3.mouse(this)[0]+90) + "px") // It is important to put the +90: other wise the tooltip is exactly where the point is an it creates a weird effect
-					     .style("top", (d3.mouse(this)[1]) + "px")
-					 }
-
-					 // A function that change this tooltip when the leaves a point: just need to set opacity to 0 again
-					 var mouseleave = function(d) {
-					   tooltip
-					     .transition()
-					     .duration(200)
-					     .style("opacity", 0)
-					 };
-
-					var flows = salmonF.selectAll("path")
-					                   .data(link);
-
-					flows.enter()
-					     .append("path")
-					     .merge(flows)
-					      .attr("d", function(d) {
-					      	return (path(d.geometry))
-					      })
-					      .style("fill", "none")
-					      .style("stroke", function(d) {
-					      	var net = d.properties.exp_quant - d.properties.imp_quant;
-					      	if (net > 0) { return "#26694d"}
-					      	else { return "#9e2613"}
-					      })
-					      .style("stroke-width", function(d) {
-					      	var net = d.properties.exp_quant - d.properties.imp_quant;
-					      	return Math.abs(net) / 500000;
-					      })
-					      .on("mouseover", mouseover)
-					      .on("mousemove", mousemove )
-					      .on("mouseleave", mouseleave )
-
-
-				})
-				
+			function zoomstarted() {
+			    v0 = versor.cartesian(projection.invert(d3.mouse(this)));
+			    r0 = projection.rotate();
+			    q0 = versor(r0);
 			}
-				
-			drawSalmon(2020)
 
-			var slider = d3.sliderHorizontal()
-			               .min(1990)
-			               .max(2020)
-			               .step(1)
-			               .width(windowWidth - 100)
-			               .default(2020)
-			               .tickFormat(d3.format(".0f"))
-			               .displayValue(true)
-			               .on("onchange", val => {drawSalmon(val)})
+			function zoomed() {
+			    projection.scale(d3.event.transform.k * (windowHeight - 10) / 2);
 
-			var sliderSVG = d3.select("#slider")
-			  .append('svg')
+			    var v1 = versor.cartesian(projection.rotate(r0).invert(d3.mouse(this))),
+			        q1 = versor.multiply(q0, versor.delta(v0, v1)),
+			        r1 = versor.rotation(q1);
+			    projection.rotate(r1);
 
-			  sliderSVG.attr('width', windowWidth)
-			  .attr('height', 70)
-			  .style("background-color", "rgba(255, 255, 255, 0.8")
-			  .append('g')
-			  .attr('transform', 'translate(50,20)')
-			  .call(slider);
+			    render();
+			}*/
 
+			function zoom(projection, {
+			  // Capture the projection’s original scale, before any zooming.
+			  scale = projection._scale === undefined
+			    ? (projection._scale = projection.scale()) 
+			    : projection._scale,
+			  scaleExtent = [0.8, 8]
+			} = {}) {
+			  let v0, q0, r0, a0, tl;
 
+			  const zoom = d3.zoom()
+			      .scaleExtent(scaleExtent.map(x => x * scale))
+			      .on("start", zoomstarted)
+			      .on("zoom", zoomed);
 
+			  function point(event, that) {
+			    const t = d3.pointers(event, that);
 
-			// drag & zoom
-			const initialScale = projection.scale()
-			const sensitivity = 75;
-			const drag = d3.drag().on('drag', () => {
-				const rotate = projection.rotate()
-				const k = sensitivity / projection.scale()
-				projection.rotate([
-					rotate[0] + d3.event.dx * k,
-					rotate[1] - d3.event.dy * k])
-				path = d3.geoPath().projection(projection)
-				svg.selectAll("path").attr("d", path)
+			    if (t.length !== tl) {
+			      tl = t.length;
+			      if (tl > 1) a0 = Math.atan2(t[1][1] - t[0][1], t[1][0] - t[0][0]);
+			      zoomstarted.call(that, event);
+			    }
 
-			})
+			    return tl > 1
+			      ? [
+			          d3.mean(t, p => p[0]),
+			          d3.mean(t, p => p[1]),
+			          Math.atan2(t[1][1] - t[0][1], t[1][0] - t[0][0])
+			        ]
+			      : t[0];
+			  }
 
-			const zoom = d3.zoom().on('zoom', () => {
-				if (d3.event.transform.k > 0.3) {
-					projection.scale(initialScale * d3.event.transform.k)
-					path = d3.geoPath().projection(projection)
-					svg.selectAll("path").attr("d", path)
-				} 
-				else {
-					d3.event.transform.k = 0.3;
-				}
-			})
+			  function zoomstarted(event) {
+			    v0 = versor.cartesian(projection.invert(point(event, this)));
+			    q0 = versor((r0 = projection.rotate()));
+			  }
 
-			svg.call(drag)
-			   .call(zoom);
+			  function zoomed(event) {
+			    projection.scale(event.transform.k);
+			    const pt = point(event, this);
+			    const v1 = versor.cartesian(projection.rotate(r0).invert(pt));
+			    const delta = versor.delta(v0, v1);
+			    let q1 = versor.multiply(q0, delta);
 
+			    // For multitouch, compose with a rotation around the axis.
+			    if (pt[2]) {
+			      const d = (pt[2] - a0) / 2;
+			      const s = -Math.sin(d);
+			      const c = Math.sign(Math.cos(d));
+			      q1 = versor.multiply([Math.sqrt(1 - s * s), 0, 0, c * s], q1);
+			    }
+
+			    projection.rotate(versor.rotation(q1));
+			    
+			    // In vicinity of the antipode (unstable) of q0, restart.
+			    if (delta[0] < 0.7) zoomstarted.call(this, event);
+			  }
+
+			  return Object.assign(selection => selection
+			      .property("__zoom", d3.zoomIdentity.scale(projection.scale()))
+			      .call(zoom), {
+			    on(type, ...options) {
+			      return options.length
+			          ? (zoom.on(type, ...options), this)
+			          : zoom.on(type);
+			    }
+			  });
+			}
+
+			/*Promise.all([d3.json("https://unpkg.com/world-atlas@2.0.2/countries-110m.json")],
+						[d3.json("https://unpkg.com/world-atlas@2.0.2/countries-50m.json")]
+				        ).then(d=>ready(null, d[0], d[1]));
+
+			function ready(error, world) {
+				var sphere = {type: "Sphere"},
+			      land = topojson.feature(world, world.objects.countries);
+
+			  render = function() {
+			    context.clearRect(0, 0, windowWidth, windowHeight);
+			    context.beginPath(), path(sphere), context.fillStyle = "#c5dcde", context.fill();
+			    context.beginPath(), path(land), context.fillStyle = "#fff", context.fill();
+			    context.beginPath(), path(land), context.strokeStyle = "#000", context.stroke();
+			    context.beginPath(), path(sphere), context.stroke(), context.strokeStyle = "black", context.lineWidth = 0.5;
+			  };
+
+			  render();
+			}*/
+
+			var land50 = d3.json("https://unpkg.com/world-atlas@2.0.2/countries-50m.json").then(world => topojson.feature(world, world.objects.land))
+			var sphere = ({type: "Sphere"})
 
 		</script>
 	</body>
