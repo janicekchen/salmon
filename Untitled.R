@@ -57,8 +57,9 @@ import_sum$us_stateorigin <- gsub(", State", "", import_sum$us_stateorigin)
 
 # STATE CENTROIDS
 # creating centroid data frame of US states
-us_states <- states(cb = TRUE, resolution = "20m") %>%
-  mutate(lon = st_coordinates(st_centroid(.))[, 1], lat = st_coordinates(st_centroid(.))[, 2]) %>%
+us_states <- states(cb = TRUE, resolution = "20m")
+state_cents <- data.frame(lon = st_coordinates(st_centroid(us_states))[, 1], lat = st_coordinates(st_centroid(us_states))[, 2])
+us_states <- cbind(us_states, state_cents) %>%
   select(c(NAME, lon, lat)) %>%
   st_set_geometry(NULL)
 
@@ -79,24 +80,30 @@ unique_ports <- unique(c(import_sum$clearance_port, export_sum$clearance_port))
 ports_filt <- read.csv("data/processed/ports_filtered.csv")
 ports_filt <- ports_filt[, c(1:4, 6, 5)]
 
-import_sum %<>% left_join(ports_filt[c(1, 5:6)], by = c("clearance_port" = "port_code"))
-names(import_sum)[8:9] <- c("dest_lon", "dest_lat")
-
-export_sum %<>% left_join(ports_filt[c(1, 5:6)], by = c("clearance_port" = "port_code"))
-names(export_sum)[8:9] <- c("or_lon", "or_lat")
-  
+# import_sum %<>% left_join(ports_filt[c(1, 4, 7:9)], by = c("clearance_port" = "port_code"))
+# # names(import_sum)[8:9] <- c("dest_lon", "dest_lat")
+# 
+# export_sum %<>% left_join(ports_filt[c(1, 4, 7:9)], by = c("clearance_port" = "port_code"))
+# # names(export_sum)[8:9] <- c("or_lon", "or_lat")
+#   
 names(import_sum)[c(2, 4:5)] <- c("us_state", "imp_quant", "imp_value")
 names(export_sum)[c(2, 4:5)] <- c("us_state", "exp_quant", "exp_value")
 
 net <- full_join(import_sum[1:5], export_sum[1:5], 
                  by = c("year", "us_state", "clearance_port")) %>%
   left_join(us_states, by = c("us_state" = "NAME")) %>%
-  left_join(ports_filt[c(1, 4:6)], by = c("clearance_port" = "port_code"))
+  left_join(ports_filt[c(1, 4, 7:9)], by = c("clearance_port" = "port_code"))
 
-names(net)[c(8:9, 11:12)] <- c("state_lon", "state_lat", "port_lon", "port_lat")
+names(net)[c(2, 8:9, 12:13)] <- c("state", "state_lon", "state_lat", "city_lon", "city_lat")
 net %<>% mutate_at(c(1:7), ~replace(., is.na(.), 0))
-write.csv(net, "data/processed/net_salmon.csv")
+# write.csv(net, "data/processed/net_salmon.csv")
 
+# aggregating by city 
+net_us_city <- net %>%
+  group_by(year, state, city) %>%
+  summarize(imp_quant = sum(imp_quant), imp_value = sum(imp_value), exp_quant = sum(exp_quant), exp_value = sum(exp_value), state_lon = first(state_lon), state_lat = first(state_lat), city_lon = first(city_lon), city_lat = first(city_lat))
+
+# write.csv(net_us_city, "data/processed/netus_bycity.csv")
 
 # doing world things now
 export_world <- export %>%
@@ -134,7 +141,7 @@ ports_filtworld <- read.csv("data/processed/ports_filteredworld.csv")
 # creating net trade data frame
 net_world <- full_join(import_worldsum, export_worldsum, by = c("year", "country", "clearance_port")) %>%
   left_join(countries_cent, by = c("country" = "name_long")) %>%
-  left_join(ports_filtworld[c(1, 4:6)], by = c("clearance_port" = "port_code"))
+  left_join(ports_filtworld[c(1, 4, 7:9)], by = c("clearance_port" = "port_code"))
 
 # some countries have not been matched with coordinates. finding NA rows.
 nwNA <- net_world %>%
@@ -156,13 +163,13 @@ net_world$country <- gsub("Moldova, Republic of", "Moldova", net_world$country)
 net_world$country <- gsub("South Africa, Republic of", "South Africa", net_world$country)
 
 # run data frame join again
-net_world %<>%
+net_world <- net_world %>%
   left_join(countries_cent, by = c("country" = "name_long")) %>%
-  left_join(ports_filtworld[c(1, 4:6)], by = c("clearance_port" = "port_code"))
+  left_join(ports_filtworld[c(1, 4, 7:9)], by = c("clearance_port" = "port_code"))
 
-nwNA <- net_world %>%
-  filter(is.na(X))
-uniqueNA <- unique(nwNA$country)
+# nwNA <- net_world %>%
+#   filter(is.na(X))
+# uniqueNA <- unique(nwNA$country)
 
 net_world[net_world$country == "Faroe Islands", 8] <- -6.9118
 net_world[net_world$country == "Faroe Islands", 9] <- 61.8926
@@ -180,57 +187,14 @@ net_world[net_world$country == "Cabo Verde", 8] <- -23.0418
 net_world[net_world$country == "Cabo Verde", 9] <- 16.5388
 
 net_world %<>% mutate_at(c(1:7), ~replace(., is.na(.), 0))
-names(net_world)[c(2, 8:9, 11:12)] <- c("state","state_lon", "state_lat", "port_lat", "port_lon")
-names(net)[2] <- "state"
+names(net_world)[c(2, 8:9, 12:13)] <- c("state","state_lon", "state_lat", "city_lat", "city_lon")
 
-net_all <- rbind(net, net_world)
+# simplify by city to reduce clutter on map
+net_world_city <- net_world %>%
+  group_by(year, state, city) %>%
+  summarize(imp_quant = sum(imp_quant), imp_value = sum(imp_value), exp_quant = sum(exp_quant), exp_value = sum(exp_value), state_lon = first(state_lon), state_lat = first(state_lat), city_lon = first(city_lon), city_lat = first(city_lat))
 
-write.csv(net_world, "data/processed/net_world.csv")
-write.csv(net_all, "data/processed/net_all.csv")
-# mapping
-# flow <- function(x) {
-#   gcIntermediate(as.data.frame(x)[complete.cases(x), 6:7], as.data.frame(x)[complete.cases(x), 8:9],
-#                  sp = TRUE, addStartEnd = TRUE)}
+net_all <- rbind(net_us_city, net_world_city)
 # 
-# df_list <- list(import_sum, export_sum)
-# flow_list <- lapply(df_list, function(x) {
-#   flow(x)
-#   # for(i in 1999:2020) {
-#   #   t <- x %>%
-#   #     filter(year == i)
-#   #   flows <- flow(t)
-#   #   assign(paste0(x, i), flows, envir = .GlobalEnv)
-#   # }
-# })
-# 
-# 
-# for(j in 2000:2020) {
-#   t <- export_sum[complete.cases(export_sum), ] %>%
-#     filter(year == j) 
-#   flows <- flow(t) %>%
-#     st_as_sf() %>%
-#     cbind(t) %>%
-#     st_as_sf() %>%
-#     st_transform(4326)
-# 
-#   assign(paste0("export", j), flows, envir = .GlobalEnv)
-# }
-# 
-# for(j in 2000:2020) {
-#   t <- import_sum[complete.cases(import_sum), ] %>%
-#     filter(year == j) 
-#   flows <- flow(t) %>%
-#     st_as_sf() %>%
-#     cbind(t) %>%
-#     st_as_sf() %>%
-#     st_transform(4326)
-#   
-#   assign(paste0("import", j), flows, envir = .GlobalEnv)
-# }
-# 
-# 
-# 
-# leaflet() %>%
-#   addProviderTiles('CartoDB.Positron') %>%
-#   addPolylines(data = export2019, color = "blue", weight = export2020$value / 5000000) %>%
-#   addPolylines(data = import2019, color = "black", weight = import2020$value / 5000000) 
+# write.csv(net_world, "data/processed/net_world.csv")
+# write.csv(net_all, "data/processed/net_all.csv")

@@ -3,7 +3,6 @@
 	<head>
 		<script src ='https://cdnjs.cloudflare.com/ajax/libs/d3/5.15.0/d3.min.js'></script>
 		<script src="https://unpkg.com/d3-simple-slider"></script>
-		<script src="https://unpkg.com/versor"></script>
 		<style>
 		
 			body {
@@ -25,7 +24,7 @@
 		<script type = 'text/javascript'>
 			const world = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/f805b1583af0e0500e1a4884bb0dd40834019aa8/worldmap.json";
 
-			const netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/71f5bf1b53b4f3b61dc7768df0d7a8b565dd20ad/net_all.csv";
+			const netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/11512b328999d93a47662726685b43e93fe82007/net_all.csv";
 
 			const states = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/d5c58da63f9a8eeb10f5990e60b029b9bd3356f4/us.json";
 
@@ -33,7 +32,9 @@
 			
 			var windowHeight = window.innerHeight;
 			var windowWidth = window.innerWidth;
-			var scale = 800,
+			var lastX = 0,
+				lastY= 0,
+				scale = 800,
 			    origin = {
 			    	x: 110, 
 			    	y: -50
@@ -127,7 +128,7 @@
 					var link = []
 					filtData.forEach(function(row) {
 						source = [+row.state_lon, +row.state_lat]
-						target = [+row.port_lon, +row.port_lat]
+						target = [+row.city_lon, +row.city_lat]
 						topush = {type: "Feature",
 								  geometry: {
 								  	type: "LineString", 
@@ -139,8 +140,7 @@
 								  	"exp_value": row.exp_value,
 								  	"imp_value": row.imp_value,
 								  	"state": row.state,
-								  	"port": row.port_eng,
-								  	"port_code": row.port_code
+								  	"city": row.city
 								  }
 								}
 
@@ -165,7 +165,7 @@
 
 					var mousemove = function(d) {
 					   tooltip
-					     .html("<strong>" + d.properties.port + " -- " + d.properties.state + "<br>Export quantity | value: </strong>" + d3.format(",.0f")(d.properties.exp_quant) + " | " + d3.format("$,.0f")(d.properties.exp_value) + "<strong><br> Import quantity | value:</strong> " + d3.format(",.0f")(d.properties.imp_quant) + " | " + d3.format("$,.0f")(d.properties.imp_value))
+					     .html("<strong>" + d.properties.city + " -- " + d.properties.state + "<br>Export quantity | value: </strong>" + d3.format(",.0f")(d.properties.exp_quant) + " | " + d3.format("$,.0f")(d.properties.exp_value) + "<strong><br> Import quantity | value:</strong> " + d3.format(",.0f")(d.properties.imp_quant) + " | " + d3.format("$,.0f")(d.properties.imp_value))
 					     .style("left", (d3.mouse(this)[0]+90) + "px") // It is important to put the +90: other wise the tooltip is exactly where the point is an it creates a weird effect
 					     .style("top", (d3.mouse(this)[1]) + "px")
 					 }
@@ -197,9 +197,9 @@
 					      	var net = d.properties.exp_quant - d.properties.imp_quant;
 					      	return Math.abs(net) / 500000;
 					      })
-					      //.on("mouseover", mouseover)
-					      //.on("mousemove", mousemove )
-					      //.on("mouseleave", mouseleave )
+					      .on("mouseover", mouseover)
+					      .on("mousemove", mousemove)
+					      .on("mouseleave", mouseleave)
 
 
 
@@ -207,22 +207,22 @@
 				
 			}
 				
-			drawSalmon(2020)
+			drawSalmon(2018)
 
 			var slider = d3.sliderHorizontal()
 			               .min(1990)
 			               .max(2020)
 			               .step(1)
 			               .width(windowWidth - 100)
-			               .default(2020)
+			               //.default(2020)
 			               .tickFormat(d3.format(".0f"))
-			               .displayValue(true)
-			               .on("onchange", val => {drawSalmon(val)})
+			               //.displayValue(true)
+			               //.on("drag", val => {console.log(hello)})
 
 			var sliderSVG = d3.select("#slider")
 			  .append('svg')
 
-			  sliderSVG.attr('width', windowWidth)
+			sliderSVG.attr('width', windowWidth)
 			  .attr('height', 70)
 			  .style("background-color", "rgba(255, 255, 255, 0.8")
 			  .append('g')
