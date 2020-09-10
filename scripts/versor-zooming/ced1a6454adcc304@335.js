@@ -40,7 +40,6 @@ function zoom(projection, {
 
   const zoom = d3.zoom()
       .scaleExtent(scaleExtent.map(x => x * scale))
-      .on("start", zoomstarted)
       .on("zoom", zoomed);
 
   function point(event, that) {
