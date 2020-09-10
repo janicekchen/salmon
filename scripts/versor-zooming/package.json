@@ -1,0 +1,14 @@
+{
+  "name": "@janicekchen/versor-zooming",
+  "main": "ced1a6454adcc304@335.js",
+  "version": "335.0.0",
+  "homepage": "https://observablehq.com/@janicekchen/versor-zooming",
+  "author": {
+    "name": "Janice Kai Chen",
+    "url": "https://observablehq.com/@janicekchen"
+  },
+  "type": "module",
+  "peerDependencies": {
+    "@observablehq/runtime": "4"
+  }
+}
