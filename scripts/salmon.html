@@ -209,27 +209,6 @@
 				
 			drawSalmon(2018)
 
-			var slider = d3.sliderHorizontal()
-			               .min(1990)
-			               .max(2020)
-			               .step(1)
-			               .width(windowWidth - 100)
-			               //.default(2020)
-			               .tickFormat(d3.format(".0f"))
-			               //.displayValue(true)
-			               //.on("drag", val => {console.log(hello)})
-
-			var sliderSVG = d3.select("#slider")
-			  .append('svg')
-
-			sliderSVG.attr('width', windowWidth)
-			  .attr('height', 70)
-			  .style("background-color", "rgba(255, 255, 255, 0.8")
-			  .append('g')
-			  .attr('transform', 'translate(50,20)')
-			  .call(slider);
-
-
 
 
 			// drag & zoom
@@ -280,7 +259,7 @@
 			     y: φ(transform.y)
 			   };
 			   var k = Math.sqrt(100 / projection.scale());
-			   if (d3.event.sourceEvent && d3.event.sourceEvent.wheelDelta) {
+			   if (d3.event.sourceEvent.wheelDelta || d3.event.ctrlKey) {
 			     projection.scale(scale * transform.k)
 			     transform.x = lastX;
 			     transform.y = lastY;
@@ -296,6 +275,27 @@
 
 
 			svg.call(zoom);
+
+
+			var slider = d3.sliderHorizontal()
+			               .min(1990)
+			               .max(2020)
+			               .step(1)
+			               .width(windowWidth - 100)
+			               //.default(2020)
+			               .tickFormat(d3.format(".0f"))
+			               //.displayValue(true)
+			               //.on("drag", val => {console.log(hello)})
+
+			var sliderSVG = d3.select("#slider")
+			  .append('svg')
+
+			sliderSVG.attr('width', windowWidth)
+			  .attr('height', 70)
+			  .style("background-color", "rgba(255, 255, 255, 0.8")
+			  .append('g')
+			  .attr('transform', 'translate(50,20)')
+			  .call(slider);
 
 
 
