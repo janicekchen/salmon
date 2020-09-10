@@ -280,7 +280,7 @@
 			     y: φ(transform.y)
 			   };
 			   var k = Math.sqrt(100 / projection.scale());
-			   if (d3.event.sourceEvent.wheelDelta) {
+			   if (d3.event.sourceEvent && d3.event.sourceEvent.wheelDelta) {
 			     projection.scale(scale * transform.k)
 			     transform.x = lastX;
 			     transform.y = lastY;
