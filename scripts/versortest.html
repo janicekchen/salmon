@@ -1,0 +1,290 @@
+<! DOCTYPE html>
+<html>
+	<head>
+		<title>B.C.'s Salmon Trade</title>
+		<script src ='https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.min.js'></script>
+		<script src = "https://unpkg.com/d3-simple-slider@1.7.1/dist/d3-simple-slider.min.js"></script>
+		<script src="https://unpkg.com/versor"></script>
+		<script src="https://unpkg.com/topojson-client@2"></script>
+		<link rel="stylesheet" href="proximanova/stylesheet.css">
+		<style>
+			body { 
+				margin: 0;
+			 }
+
+			 #container {
+			 	position: relative	;
+			 }
+			 canvas {
+			 	position: absolute;
+			 	left: 0px; top:0px; z-index: 2
+			 }
+
+			 svg {
+			 	position: absolute;
+			 	left: 0px; top:0px; z-index: 2
+			 }
+	
+		</style>
+	</head>
+	<body>
+		<div id = "container"></div>
+		<script type = "text/javascript">
+
+			const world = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/fde24a15aeb22e681a66de3bb9c0579b361c6618/worldmap.json";
+
+			const provinces = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/64fb495c70601c38927e19b41dd650228e21451c/canada_provinces.geojson"
+
+			const netSalmon = "https://gist.githubusercontent.com/janicekchen/de49f6bd754b6955ca27e2dddaf13218/raw/fde24a15aeb22e681a66de3bb9c0579b361c6618/net_all.csv";
+
+
+			var width = window.innerWidth;
+			var height = window.innerHeight;
+
+			var canvas = d3.select("#container")
+			               .append('canvas')
+			               .attr("id", "myCanvas")
+			               .attr("width", width * window.devicePixelRatio)
+			               .attr("height", height * window.devicePixelRatio)
+			               .style("width", width + 'px')
+			               .style("height", height + 'px');
+
+
+			var ctx = canvas.node().getContext('2d');
+			ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+			var customBase = document.createElement('custom');
+			var custom = d3.select(customBase); // kind of like an SVG replacement
+
+
+			var projection = d3.geoOrthographic()
+			                   .rotate([110, -50])
+			                   .scale(800)
+			                   .translate([width / 2, height / 2])
+			                   .precision(0.1);
+
+			var path = d3.geoPath()
+			             .projection(projection)
+			             .context(ctx);
+
+			var svg = d3.select("#container")
+			            .append("svg")
+			            .attr("height", height)
+			            .attr("width", width)
+			            .style("background-color", "#ffff0");
+
+			var pathSVG = d3.geoPath()
+			             .projection(projection);
+
+			var salmonF = svg.append("g");
+			var salmonFS = svg.append("g");
+
+			d3.json("https://unpkg.com/world-atlas@2.0.2/countries-50m.json").then(function(data) {
+
+				var sphere = ({type: "Sphere"})
+				
+				render = function () {
+
+					ctx.clearRect(0, 0, width, height);
+					ctx.beginPath(),
+					path(sphere),
+					ctx.fillStyle = "#c5dcde", ctx.fill(),
+					ctx.strokeStyle = "#000", ctx.stroke();
+
+					ctx.beginPath(), 
+					path(topojson.feature(data, data.objects.land)), 
+					ctx.fillStyle = "#fff", ctx.fill(),  
+					ctx.lineWidth = '2', ctx.strokeStyle = '#013f45', ctx.lineWidth = 0.5, ctx.stroke();
+				}
+
+				render();
+				
+
+			})
+
+			/*d3.json(provinces).then(function(data) {
+
+
+				
+				render = function () {
+
+					ctx.clearRect(0, 0, width, height);
+
+					ctx.beginPath(), 
+					path(data), 
+					ctx.fillStyle = "#fff", ctx.fill(),  
+					ctx.lineWidth = '2', ctx.strokeStyle = '#013f45', ctx.lineWidth = 0.5, ctx.stroke();
+				}
+
+				render();
+				
+
+			})*/
+
+			canvas.call(d3.zoom()
+			    .on("start", zoomstarted)
+			    .on('zoom', zoomed));
+
+			var render = function() {},
+			    v0, // Mouse position in Cartesian coordinates at start of drag gesture.
+			    r0, // Projection rotation as Euler angles at start.
+			    q0; // Projection rotation as versor at start.
+
+			function zoomstarted() {
+			    v0 = versor.cartesian(projection.invert(d3.mouse(this)));
+			    r0 = projection.rotate();
+			    q0 = versor(r0);
+			}
+
+			function zoomed() {
+			    projection.scale(d3.event.transform.k * 800);
+
+			    var v1 = versor.cartesian(projection.rotate(r0).invert(d3.mouse(this))),
+			        q1 = versor.multiply(q0, versor.delta(v0, v1)),
+			        r1 = versor.rotation(q1);
+			    projection.rotate(r1);
+
+			    render();
+			}
+
+			function drawSalmon(year) {
+				d3.csv(netSalmon).then(function(data) {
+
+					var filtData = data.filter(function(d) {
+						return d.year == year;
+					});
+
+					console.log(year)
+
+					var link = []
+					filtData.forEach(function(row) {
+						source = [+row.state_lon, +row.state_lat]
+						target = [+row.city_lon, +row.city_lat]
+						topush = {type: "Feature",
+								  geometry: {
+								  	type: "LineString", 
+								  	coordinates: [source, target]
+								  },
+								  "properties": {
+								  	"exp_quant": row.exp_quant,
+								  	"imp_quant": row.imp_quant,
+								  	"exp_value": row.exp_value,
+								  	"imp_value": row.imp_value,
+								  	"state": row.state,
+								  	"city": row.city
+								  }
+								}
+
+						link.push(topush)
+					});
+
+					console.log(link)
+
+					var tooltip = d3.select("body")
+					    .append("div")
+					    .style("position", "absolute")
+					    .style("opacity", 0)
+					    .attr("class", "tooltip")
+					    .style("background-color", "white")
+					    .style("border", "solid")
+					    .style("border-width", "1px")
+					    .style("border-radius", "2px")
+					    .style("padding", "10px")
+
+					var mouseover = function(d) {
+					    tooltip
+					      .style("opacity", 1)
+
+					    var thisClass = d3.select(this).attr("class");
+					    salmonF.selectAll("path").attr("opacity", 0.3)
+					    salmonFS.selectAll("path").attr("opacity", 0.3)
+					    salmonF.selectAll("." + thisClass).attr("opacity", 1)
+					  }
+
+					var mousemove = function(d) {
+					   tooltip
+					     .html("<strong>" + d.properties.city + " &ndash; " + d.properties.state + "<br>Exports: </strong>" + d3.format(",.0f")(d.properties.exp_quant) + " fish / fillets (" + d3.format("$,.0f")(d.properties.exp_value) +")" + "<strong><br> Imports:</strong> " + d3.format(",.0f")(d.properties.imp_quant) + " fish / fillets (" + d3.format("$,.0f")(d.properties.imp_value) + ")")
+					     .style("left", (d3.mouse(this)[0]+90) + "px") // It is important to put the +90: other wise the tooltip is exactly where the point is an it creates a weird effect
+					     .style("top", (d3.mouse(this)[1]) + "px")
+
+
+					 }
+
+					 // A function that change this tooltip when the leaves a point: just need to set opacity to 0 again
+					 var mouseleave = function(d) {
+					   tooltip
+					     .transition()
+					     .duration(200)
+					     .style("opacity", 0)
+
+					     salmonF.selectAll("path").attr("opacity", 1)
+					     salmonFS.selectAll("path").attr("opacity", 1)
+					 };
+
+					var flows = salmonF.selectAll("path")
+					                   .data(link);
+
+					var flowShadow = salmonFS.selectAll("path")
+					                   .data(link);                   
+					flows.enter()
+					     .append("path")
+					     .merge(flows)
+					      .attr("d", function(d) {
+					      	return (path(d.geometry))
+					      })
+					      .attr("class", function(d) {
+					      	return(d.properties.city + d.properties.state) ;
+					      })
+					      .style("fill", "none")
+					      .style("stroke", function(d) {
+					      	var net = d.properties.exp_quant - d.properties.imp_quant;
+					      	if (net > 0) { return "green"}
+					      	else { return "red"}
+					      })
+					      .style("stroke-width", function(d) {
+					      	var net = d.properties.exp_quant - d.properties.imp_quant;
+					      	return Math.abs(net) / 300000;
+					      });
+
+					 flows.exit()
+					      .remove()
+					    
+
+					 flowShadow.enter()
+					     .append("path")
+					     .merge(flowShadow)
+					      .attr("d", function(d) {
+					      	return (path(d.geometry))
+					      })
+					      .attr("class", function(d) {
+					      	return(d.properties.city + d.properties.state) ;
+					      })
+					      .style("fill", "none")
+					      .style("stroke", "rgba(0,0,0, 0.04)")
+					      .style("stroke-width", function(d) {
+					      	var net = d.properties.exp_quant - d.properties.imp_quant;
+					      	if (Math.abs(net) < 730000) {
+					      		return Math.abs(net) / 30000;
+					      	}
+					      	else {return Math.abs(net) / 300000;}
+
+					      })
+					      .on("mouseover", mouseover)
+					      .on("mousemove", mousemove)
+					      .on("mouseleave", mouseleave);
+
+
+					 flowShadow.exit()
+					           .remove()
+				})
+				
+			};
+				
+			drawSalmon(2020);
+
+
+		</script>
+
+
+	</body>
+</html

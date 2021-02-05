@@ -94,7 +94,7 @@ net <- full_join(import_sum[1:5], export_sum[1:5],
   left_join(us_states, by = c("us_state" = "NAME")) %>%
   left_join(ports_filt[c(1, 4, 7:9)], by = c("clearance_port" = "port_code"))
 
-names(net)[c(2, 8:9, 12:13)] <- c("state", "state_lon", "state_lat", "city_lon", "city_lat")
+names(net)[c(2, 8:9, 12:13)] <- c("state", "state_lon", "state_lat", "city_lat", "city_lon")
 net %<>% mutate_at(c(1:7), ~replace(., is.na(.), 0))
 # write.csv(net, "data/processed/net_salmon.csv")
 
@@ -105,7 +105,7 @@ net_us_city <- net %>%
 
 # write.csv(net_us_city, "data/processed/netus_bycity.csv")
 
-# doing world things now
+# WORLD DATA #
 export_world <- export %>%
   filter(country_dest != "United States")
 
@@ -195,6 +195,7 @@ net_world_city <- net_world %>%
   summarize(imp_quant = sum(imp_quant), imp_value = sum(imp_value), exp_quant = sum(exp_quant), exp_value = sum(exp_value), state_lon = first(state_lon), state_lat = first(state_lat), city_lon = first(city_lon), city_lat = first(city_lat))
 
 net_all <- rbind(net_us_city, net_world_city)
+unique(net_all$year)
 # 
 # write.csv(net_world, "data/processed/net_world.csv")
 # write.csv(net_all, "data/processed/net_all.csv")
